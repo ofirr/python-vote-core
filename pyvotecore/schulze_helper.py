@@ -13,9 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pygraph.algorithms.accessibility import accessibility, mutual_accessibility
-from pygraph.classes.digraph import digraph
-from pygraph.algorithms.minmax import maximum_flow
+#from pygraph.algorithms.accessibility import accessibility, mutual_accessibility
+#from pygraph.classes.digraph import digraph
+#from pygraph.algorithms.minmax import maximum_flow
+import networkx as nx
 from condorcet import CondorcetHelper
 from common_functions import matching_keys, unique_permutations
 
@@ -38,8 +39,8 @@ class SchulzeHelper(CondorcetHelper):
         # Iterate through using the Schwartz set heuristic
         self.actions = []
         while len(self.graph.edges()) > 0:
-            access = accessibility(self.graph)
-            mutual_access = mutual_accessibility(self.graph)
+            access = nx.connected_components(self.graph)
+            mutual_access = nx.strongly_connected_components(self.graph)
             candidates_to_remove = set()
             for candidate in self.graph.nodes():
                 candidates_to_remove |= (set(access[candidate]) - set(mutual_access[candidate]))
@@ -48,7 +49,7 @@ class SchulzeHelper(CondorcetHelper):
             if len(candidates_to_remove) > 0:
                 self.actions.append({'nodes': candidates_to_remove})
                 for candidate in candidates_to_remove:
-                    self.graph.del_node(candidate)
+                    self.graph.remove_node(candidate)
 
             # If none exist, remove the weakest edges
             else:
@@ -60,9 +61,9 @@ class SchulzeHelper(CondorcetHelper):
         self.graph_winner()
 
     def generate_vote_management_graph(self):
-        self.vote_management_graph = digraph()
+        self.vote_management_graph = nx.DiGraph()
         self.vote_management_graph.add_nodes(self.completed_patterns)
-        self.vote_management_graph.del_node(tuple([PREFERRED_MORE] * self.required_winners))
+        self.vote_management_graph.remove_node(tuple([PREFERRED_MORE] * self.required_winners))
         self.pattern_nodes = self.vote_management_graph.nodes()
         self.vote_management_graph.add_nodes(["source", "sink"])
         for pattern_node in self.pattern_nodes:
@@ -174,18 +175,18 @@ class SchulzeHelper(CondorcetHelper):
 
         # Initialize the graph weights
         for pattern in self.pattern_nodes:
-            self.vote_management_graph.set_edge_weight(("source", pattern), voter_profile[pattern])
+            self.vote_management_graph["source"][pattern]['capacity'] = voter_profile[pattern]
             for i in range(self.required_winners):
                 if pattern[i] == 1:
-                    self.vote_management_graph.set_edge_weight((pattern, i), voter_profile[pattern])
+                    self.vote_management_graph[pattern][i]['capacity'] = voter_profile[pattern]
 
         # Iterate towards the limit
         r = [(float(sum(voter_profile.values())) - voter_profile[tuple([PREFERRED_MORE] * self.required_winners)]) / self.required_winners]
         while len(r) < 2 or r[-2] - r[-1] > STRENGTH_TOLERANCE:
             for i in range(self.required_winners):
-                self.vote_management_graph.set_edge_weight((i, "sink"), r[-1])
-            max_flow = maximum_flow(self.vote_management_graph, "source", "sink")
-            sink_sum = sum(v for k, v in max_flow[0].iteritems() if k[1] == "sink")
+                self.vote_management_graph[i]["sink"]['capacity'] = r[-1]
+            max_flow = nx.ford_fulkerson(self.vote_management_graph, "source", "sink")
+            sink_sum = sum(v for k, v in max_flow[1].iteritems() if k[1] == "sink")
             r.append(sink_sum / self.required_winners)
 
             # We expect strengths to be above a specified threshold

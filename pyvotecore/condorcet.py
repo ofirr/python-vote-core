@@ -15,7 +15,8 @@
 
 from abc import ABCMeta, abstractmethod
 from abstract_classes import SingleWinnerVotingSystem
-from pygraph.classes.digraph import digraph
+#from pygraph.classes.digraph import digraph
+import networkx as nx
 import itertools
 
 
@@ -68,33 +69,58 @@ class CondorcetHelper(object):
 
     @staticmethod
     def ballots_into_graph(candidates, ballots):
-        graph = digraph()
-        graph.add_nodes(candidates)
+        # graph = digraph()
+        graph = nx.DiGraph()
+        #graph.add_nodes(candidates)
+        graph.add_nodes_from(candidates)
         for pair in itertools.permutations(candidates, 2):
-            graph.add_edge(pair, sum([
+            graph.add_edge(*pair, weight=sum([
                 ballot["count"]
                 for ballot in ballots
                 if ballot["ballot"][pair[0]] > ballot["ballot"][pair[1]]
             ]))
+#            graph.add_edge(pair, sum([
+#                ballot["count"]
+#                for ballot in ballots
+#                if ballot["ballot"][pair[0]] > ballot["ballot"][pair[1]]
+#            ]))
         return graph
 
+#    @staticmethod
+#    def edge_weights(graph):
+#        return dict([
+#            (edge, graph.edge_weight(edge))
+#            for edge in graph.edges()
+#        ])
     @staticmethod
     def edge_weights(graph):
-        return dict([
-            (edge, graph.edge_weight(edge))
-            for edge in graph.edges()
-        ])
+        # This method is faster than dict([ (u,v,edata['weight']) for u,v,edata in G.edges(data=True) if 'weight' in edata ])
+        edge_weights_list = []
+        for n,nbrsdict in graph.adjacency_iter():
+            for nbr,eattr in nbrsdict.items():
+                if 'weight' in eattr:
+                    edge_weights_list.append(((n,nbr),eattr['weight']))
+        return dict(edge_weights_list)
+
+#    @staticmethod
+#    def remove_weak_edges(graph):
+#        for pair in itertools.combinations(graph.nodes(), 2):
+#            pairs = (pair, (pair[1], pair[0]))
+#            weights = (graph.edge_weight(pairs[0]), graph.edge_weight(pairs[1]))
+#            if weights[0] >= weights[1]:
+#                graph.del_edge(pairs[1])
+#            if weights[1] >= weights[0]:
+#                graph.del_edge(pairs[0])
 
     @staticmethod
     def remove_weak_edges(graph):
         for pair in itertools.combinations(graph.nodes(), 2):
             pairs = (pair, (pair[1], pair[0]))
-            weights = (graph.edge_weight(pairs[0]), graph.edge_weight(pairs[1]))
+            weights = (graph[pairs[0][0]][pairs[0][1]], graph[pairs[1][0]][pairs[1][1]])
             if weights[0] >= weights[1]:
-                graph.del_edge(pairs[1])
+                graph.remove_edge(*pairs[1])
             if weights[1] >= weights[0]:
-                graph.del_edge(pairs[0])
-
+                graph.remove_edge(*pairs[0])
 # This class determines the Condorcet winner if one exists.
 
 

@@ -16,7 +16,8 @@
 # This class implements Schulze STV, a proportional representation system
 from abstract_classes import MultipleWinnerVotingSystem
 from schulze_helper import SchulzeHelper
-from pygraph.classes.digraph import digraph
+#from pygraph.classes.digraph import digraph
+import networkx as nx
 import itertools
 
 
@@ -38,9 +39,9 @@ class SchulzeSTV(MultipleWinnerVotingSystem, SchulzeHelper):
         self.generate_vote_management_graph()
 
         # Build the graph of possible winners
-        self.graph = digraph()
+        self.graph = nx.DiGraph()
         for candidate_set in itertools.combinations(self.candidates, self.required_winners):
-            self.graph.add_nodes([tuple(sorted(list(candidate_set)))])
+            self.graph.add_nodes_from([tuple(sorted(list(candidate_set)))])
 
         # Generate the edges between nodes
         for candidate_set in itertools.combinations(self.candidates, self.required_winners + 1):
@@ -50,7 +51,7 @@ class SchulzeSTV(MultipleWinnerVotingSystem, SchulzeHelper):
                 weight = self.strength_of_vote_management(completed)
                 if weight > 0:
                     for subset in itertools.combinations(other_candidates, len(other_candidates) - 1):
-                        self.graph.add_edge((tuple(other_candidates), tuple(sorted(list(subset) + [candidate]))), weight)
+                        self.graph.add_edge(tuple(other_candidates), tuple(sorted(list(subset) + [candidate])), weight=weight)
 
         # Determine the winner through the Schwartz set heuristic
         self.graph_winner()

@@ -16,7 +16,8 @@
 from schulze_method import SchulzeMethod
 from schulze_helper import SchulzeHelper
 from abstract_classes import AbstractOrderingVotingSystem
-from pygraph.classes.digraph import digraph
+#from pygraph.classes.digraph import digraph
+import networkx as nx
 
 
 # This class provides Schulze Method results, but bypasses ballots and uses preference tallies instead.
@@ -31,8 +32,8 @@ class SchulzeMethodByGraph(SchulzeMethod):
         self.candidates = set([edge[0] for edge, weight in self.edges.iteritems()]) | set([edge[1] for edge, weight in self.edges.iteritems()])
 
     def ballots_into_graph(self, candidates, ballots):
-        graph = digraph()
-        graph.add_nodes(candidates)
+        graph = nx.DiGraph()
+        graph.add_nodes_from(candidates)
         for edge in self.edges.iteritems():
             graph.add_edge(edge[0], edge[1])
         return graph

@@ -17,8 +17,8 @@
 # in schulze2.pdf
 from schulze_helper import SchulzeHelper
 from abstract_classes import OrderingVotingSystem
-from pygraph.classes.digraph import digraph
-
+#from pygraph.classes.digraph import digraph
+import networkx as nx
 
 class SchulzePR(OrderingVotingSystem, SchulzeHelper):
 
@@ -47,8 +47,8 @@ class SchulzePR(OrderingVotingSystem, SchulzeHelper):
             self.generate_vote_management_graph()
 
             # Generate the edges between nodes
-            self.graph = digraph()
-            self.graph.add_nodes(remaining_candidates)
+            self.graph = nx.DiGraph()
+            self.graph.add_nodes_from(remaining_candidates)
             self.winners = set([])
             self.tied_winners = set([])
 
@@ -59,7 +59,7 @@ class SchulzePR(OrderingVotingSystem, SchulzeHelper):
                     completed = self.proportional_completion(candidate_from, set([candidate_to]) | set(self.order))
                     weight = self.strength_of_vote_management(completed)
                     if weight > 0:
-                        self.graph.add_edge((candidate_to, candidate_from), weight)
+                        self.graph.add_edge(candidate_to, candidate_from, weight=weight)
 
             # Determine the round winner through the Schwartz set heuristic
             self.schwartz_set_heuristic()

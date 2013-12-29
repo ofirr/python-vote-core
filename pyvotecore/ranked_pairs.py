@@ -14,9 +14,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from condorcet import CondorcetSystem, CondorcetHelper
-from pygraph.classes.digraph import digraph
-from pygraph.algorithms.accessibility import accessibility, mutual_accessibility
-from pygraph.algorithms.cycles import find_cycle
+#from pygraph.classes.digraph import digraph
+import networkx as nx
+#from pygraph.algorithms.accessibility import accessibility, mutual_accessibility
+#from pygraph.algorithms.cycles import find_cycle
 from common_functions import matching_keys
 from copy import deepcopy
 
@@ -31,8 +32,10 @@ class RankedPairs(CondorcetSystem, CondorcetHelper):
 
         # Initialize the candidate graph
         self.rounds = []
-        graph = digraph()
-        graph.add_nodes(self.candidates)
+#        graph = digraph()
+        graph = nx.DiGraph()
+#        graph.add_nodes(self.candidates)
+        graph.add_nodes_from(self.candidates)
 
         # Loop until we've considered all possible pairs
         remaining_strong_pairs = deepcopy(self.strong_pairs)
@@ -50,10 +53,10 @@ class RankedPairs(CondorcetSystem, CondorcetHelper):
             r["pair"] = strongest_pair
 
             # If the pair would add a cycle, skip it
-            graph.add_edge(strongest_pair)
-            if len(find_cycle(graph)) > 0:
+            graph.add_edge(*strongest_pair)
+            if len(nx.simple_cycles(graph)) > 0:
                 r["action"] = "skipped"
-                graph.del_edge(strongest_pair)
+                graph.remove_edge(*strongest_pair)
             else:
                 r["action"] = "added"
             del remaining_strong_pairs[strongest_pair]
